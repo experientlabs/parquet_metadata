@@ -1,0 +1,7 @@
+polars
+numpy
+scipy
+scikit-learn
+pyarrow
+pandas
+tabulate
