@@ -1,40 +1,85 @@
+## Instructions: 
 
+1. Clone this Repo using below clone command
+```shell
+git clone git@github.com:experientlabs/parquet_metadata.git
+```
 
+2. Bild image: 
+
+```shell
 docker build -t python_workbench .
-
-docker run -it --rm -p 8888:8888 -v /home/sanjeet/Desktop/x_engineering_bootcamp_2025/python_workbenc/app:/home/pyuser/app python_workbench jupyter
-docker run -it --rm python_workbench
-
-docker run -it --rm -p 8888:8888 -v ${hostfolder}/app:${dockerfolder} python_workbench jupyter
-docker run -it --rm python_workbench
+```
 
 
-
-
+3. Run container
+```shell
 hostfolder="$(pwd)"
 dockerfolder="/home/sparkuser/app"
+docker run -it --rm -p 8888:8888 -v ${hostfolder}/app:${dockerfolder} python_workbench jupyter
+```
 
-docker run --rm -d --name spark-container \
--p 4040:4040 -p 4041:4041 -p 18080:18080 \
--v ${hostfolder}/app:${dockerfolder} -v ${hostfolder}/event_logs:/home/spark/event_logs \
-spark-dp-101:latest jupyter
+### Now you should be able to access jupyter notebook at:
+localhost:8888
+
+Just make sure that either you use the URL that is printed in the terminal while running docker run command.
+Shown below:
+![img.png](images/terminal.png)
+
+Or use the localhost:8888 and then enter the token in the login box. 
+This token is visible in terminal when you run the `docker run` command
 
 
+```python
+from pyarrow import parquet
+from tabulate import tabulate
+from IPython.display import HTML, display
 
-Can you create a dockerfile for a python development environment for data engineering. This environment should expose python through jupyter notebook.
-run command should be like
-hostfolder="$(pwd)"
-dockerfolder="/home/pyuser/app"
-docker run -p 8888:8888 -v ${hostfolder}/app:${dockerfolder} python-data-eng-env
-The main packages in this environment (through requirements.txt):
 
-1. Python 3.12
-2. Polars, numpy, scipy, sklearn, arrow
-3. should be able to read parquet file and print in dataframe (add any necessary package to requirements.txt or jars to dockerfile)
-4. Debian packages like vim to edit any file
-5. An entrypoint.sh file that should route to either jupyter or to python shell in terminal
-6. A user named pyuser
-7. /home/pyuser/app as working directory
+# Open the Parquet file
+parquet_file = 'flights-1m.parquet'
+metadata = parquet.ParquetFile(parquet_file).metadata
 
-Generate instruction to build and run the container
+print(metadata)
+# Prepare data for tabular display
+table_data = []
+headers = [
+    "Column Index", "Name", "Physical Type", "Logical Type", "Num Values",
+    "Null Count", "Min", "Max", "Compression", "Encodings", "File Offset",
+    "Total Compressed Size", "Total Uncompressed Size"
+]
 
+for column_index in range(metadata.num_columns):
+    column_meta = metadata.row_group(0).column(column_index)
+    name = metadata.schema.column(column_index).name
+    physical_type = column_meta.physical_type
+    logical_type = column_meta.statistics.logical_type if column_meta.statistics else "N/A"
+    num_values = column_meta.statistics.num_values if column_meta.statistics else "N/A"
+    null_count = column_meta.statistics.null_count if column_meta.statistics else "N/A"
+    min_val = column_meta.statistics.min if column_meta.statistics else "N/A"
+    max_val = column_meta.statistics.max if column_meta.statistics else "N/A"
+    compression = column_meta.compression
+    encodings = ", ".join(column_meta.encodings)
+    file_offset = column_meta.dictionary_page_offset
+    total_compressed_size = column_meta.total_compressed_size
+    total_uncompressed_size = column_meta.total_uncompressed_size
+
+    table_data.append([
+        column_index, name, physical_type, logical_type, num_values, null_count,
+        min_val, max_val, compression, encodings, file_offset,
+        total_compressed_size, total_uncompressed_size
+    ])
+
+table_html = tabulate(table_data, headers=headers, tablefmt="html")
+
+# Display the table with horizontal scrolling
+html_content = f"""
+<div style="overflow-x: auto; white-space: nowrap;">
+    {table_html}
+</div>
+"""
+display(HTML(html_content))
+```
+![img.png](images/tabular_metadata.png)
+
+![img.png](images/jupyter_ss.png)
