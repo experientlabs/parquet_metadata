@@ -11,8 +11,9 @@ git clone git@github.com:experientlabs/parquet_metadata.git
 docker build -t python_workbench .
 ```
 
+3. Do a `chmod 777 app` to provide write access to app directory. You can follow other approach to provide access too.
 
-3. Run container
+4. Run container
 ```shell
 hostfolder="$(pwd)"
 dockerfolder="/home/sparkuser/app"
